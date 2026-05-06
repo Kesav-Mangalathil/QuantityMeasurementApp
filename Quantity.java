@@ -8,11 +8,15 @@ public class Quantity<U extends IMeasurable> {
     public Quantity(double value, U unit) {
 
         if (unit == null) {
-            throw new IllegalArgumentException("Unit cannot be null");
+            throw new IllegalArgumentException(
+                    "Unit cannot be null");
         }
 
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-            throw new IllegalArgumentException("Invalid value");
+        if (Double.isNaN(value)
+                || Double.isInfinite(value)) {
+
+            throw new IllegalArgumentException(
+                    "Invalid value");
         }
 
         this.value = value;
@@ -27,42 +31,156 @@ public class Quantity<U extends IMeasurable> {
         return unit;
     }
 
-    // Convert quantity
+    // CONVERT
+
     public Quantity<U> convertTo(U targetUnit) {
+
+        if (targetUnit == null) {
+            throw new IllegalArgumentException(
+                    "Target unit cannot be null");
+        }
 
         double baseValue =
                 unit.convertToBaseUnit(value);
 
         double convertedValue =
-                targetUnit.convertFromBaseUnit(baseValue);
+                targetUnit.convertFromBaseUnit(
+                        baseValue);
 
-        return new Quantity<>(convertedValue, targetUnit);
+        return new Quantity<>(
+                convertedValue,
+                targetUnit);
     }
 
-    // Add using same unit
+    // ADDITION
+
     public Quantity<U> add(Quantity<U> other) {
 
         return add(other, this.unit);
     }
 
-    // Add using target unit
     public Quantity<U> add(
             Quantity<U> other,
             U targetUnit) {
+
+        if (other == null) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null");
+        }
+
+        if (targetUnit == null) {
+            throw new IllegalArgumentException(
+                    "Target unit cannot be null");
+        }
+
+        if (this.unit.getClass()
+                != other.unit.getClass()) {
+
+            throw new IllegalArgumentException(
+                    "Cross-category addition not allowed");
+        }
 
         double thisBase =
                 unit.convertToBaseUnit(this.value);
 
         double otherBase =
-                other.unit.convertToBaseUnit(other.value);
+                other.unit.convertToBaseUnit(
+                        other.value);
 
-        double sumBase = thisBase + otherBase;
+        double sumBase =
+                thisBase + otherBase;
 
         double result =
-                targetUnit.convertFromBaseUnit(sumBase);
+                targetUnit.convertFromBaseUnit(
+                        sumBase);
 
-        return new Quantity<>(result, targetUnit);
+        return new Quantity<>(
+                result,
+                targetUnit);
     }
+
+    // SUBTRACTION
+
+    public Quantity<U> subtract(
+            Quantity<U> other) {
+
+        return subtract(other, this.unit);
+    }
+
+    public Quantity<U> subtract(
+            Quantity<U> other,
+            U targetUnit) {
+
+        if (other == null) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null");
+        }
+
+        if (targetUnit == null) {
+            throw new IllegalArgumentException(
+                    "Target unit cannot be null");
+        }
+
+        if (this.unit.getClass()
+                != other.unit.getClass()) {
+
+            throw new IllegalArgumentException(
+                    "Cross-category subtraction not allowed");
+        }
+
+        double thisBase =
+                unit.convertToBaseUnit(this.value);
+
+        double otherBase =
+                other.unit.convertToBaseUnit(
+                        other.value);
+
+        double differenceBase =
+                thisBase - otherBase;
+
+        double result =
+                targetUnit.convertFromBaseUnit(
+                        differenceBase);
+
+        return new Quantity<>(
+                result,
+                targetUnit);
+    }
+
+    // DIVISION
+
+    public double divide(
+            Quantity<U> other) {
+
+        if (other == null) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null");
+        }
+
+        if (this.unit.getClass()
+                != other.unit.getClass()) {
+
+            throw new IllegalArgumentException(
+                    "Cross-category division not allowed");
+        }
+
+        double thisBase =
+                unit.convertToBaseUnit(this.value);
+
+        double otherBase =
+                other.unit.convertToBaseUnit(
+                        other.value);
+
+        if (otherBase == 0) {
+
+            throw new ArithmeticException(
+                    "Cannot divide by zero");
+        }
+
+        return thisBase / otherBase;
+    }
+
+    // EQUALS
 
     @Override
     public boolean equals(Object obj) {
@@ -75,9 +193,12 @@ public class Quantity<U extends IMeasurable> {
             return false;
         }
 
-        Quantity<?> other = (Quantity<?>) obj;
+        Quantity<?> other =
+                (Quantity<?>) obj;
 
-        if (this.unit.getClass() != other.unit.getClass()) {
+        if (this.unit.getClass()
+                != other.unit.getClass()) {
+
             return false;
         }
 
@@ -85,14 +206,34 @@ public class Quantity<U extends IMeasurable> {
                 unit.convertToBaseUnit(this.value);
 
         double otherBase =
-                other.unit.convertToBaseUnit(other.value);
+                other.unit.convertToBaseUnit(
+                        other.value);
 
-        return Math.abs(thisBase - otherBase) < EPSILON;
+        return Math.abs(
+                thisBase - otherBase)
+                < EPSILON;
     }
+
+    // HASHCODE
+
+    @Override
+    public int hashCode() {
+
+        double baseValue =
+                unit.convertToBaseUnit(value);
+
+        return Double.hashCode(baseValue);
+    }
+
+    // TOSTRING
 
     @Override
     public String toString() {
-        return "Quantity(" + value + ", "
-                + unit.getUnitName() + ")";
+
+        return "Quantity("
+                + value
+                + ", "
+                + unit.getUnitName()
+                + ")";
     }
 }
