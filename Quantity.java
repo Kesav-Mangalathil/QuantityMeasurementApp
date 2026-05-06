@@ -5,6 +5,42 @@ public class Quantity<U extends IMeasurable> {
 
     private static final double EPSILON = 0.0001;
 
+    // ENUM FOR OPERATIONS
+
+    private enum ArithmeticOperation {
+
+        ADD {
+            @Override
+            double compute(double a, double b) {
+                return a + b;
+            }
+        },
+
+        SUBTRACT {
+            @Override
+            double compute(double a, double b) {
+                return a - b;
+            }
+        },
+
+        DIVIDE {
+            @Override
+            double compute(double a, double b) {
+
+                if (b == 0) {
+                    throw new ArithmeticException(
+                            "Cannot divide by zero");
+                }
+
+                return a / b;
+            }
+        };
+
+        abstract double compute(double a, double b);
+    }
+
+    // CONSTRUCTOR
+
     public Quantity(double value, U unit) {
 
         if (unit == null) {
@@ -23,12 +59,75 @@ public class Quantity<U extends IMeasurable> {
         this.unit = unit;
     }
 
+    // GETTERS
+
     public double getValue() {
         return value;
     }
 
     public U getUnit() {
         return unit;
+    }
+
+    // VALIDATION HELPER
+
+    private void validateArithmeticOperands(
+            Quantity<U> other,
+            U targetUnit,
+            boolean targetUnitRequired) {
+
+        if (other == null) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null");
+        }
+
+        if (targetUnitRequired
+                && targetUnit == null) {
+
+            throw new IllegalArgumentException(
+                    "Target unit cannot be null");
+        }
+
+        if (this.unit.getClass()
+                != other.unit.getClass()) {
+
+            throw new IllegalArgumentException(
+                    "Cross-category arithmetic not allowed");
+        }
+
+        if (Double.isNaN(other.value)
+                || Double.isInfinite(other.value)) {
+
+            throw new IllegalArgumentException(
+                    "Invalid operand value");
+        }
+    }
+
+    // CORE ARITHMETIC HELPER
+
+    private double performBaseArithmetic(
+            Quantity<U> other,
+            ArithmeticOperation operation) {
+
+        double thisBase =
+                unit.convertToBaseUnit(this.value);
+
+        double otherBase =
+                other.unit.convertToBaseUnit(
+                        other.value);
+
+        return operation.compute(
+                thisBase,
+                otherBase);
+    }
+
+    // ROUNDING HELPER
+
+    private double roundToTwoDecimals(
+            double value) {
+
+        return Math.round(value * 100.0)
+                / 100.0;
     }
 
     // CONVERT
@@ -47,6 +146,10 @@ public class Quantity<U extends IMeasurable> {
                 targetUnit.convertFromBaseUnit(
                         baseValue);
 
+        convertedValue =
+                roundToTwoDecimals(
+                        convertedValue);
+
         return new Quantity<>(
                 convertedValue,
                 targetUnit);
@@ -54,7 +157,8 @@ public class Quantity<U extends IMeasurable> {
 
     // ADDITION
 
-    public Quantity<U> add(Quantity<U> other) {
+    public Quantity<U> add(
+            Quantity<U> other) {
 
         return add(other, this.unit);
     }
@@ -63,36 +167,22 @@ public class Quantity<U extends IMeasurable> {
             Quantity<U> other,
             U targetUnit) {
 
-        if (other == null) {
-            throw new IllegalArgumentException(
-                    "Quantity cannot be null");
-        }
+        validateArithmeticOperands(
+                other,
+                targetUnit,
+                true);
 
-        if (targetUnit == null) {
-            throw new IllegalArgumentException(
-                    "Target unit cannot be null");
-        }
-
-        if (this.unit.getClass()
-                != other.unit.getClass()) {
-
-            throw new IllegalArgumentException(
-                    "Cross-category addition not allowed");
-        }
-
-        double thisBase =
-                unit.convertToBaseUnit(this.value);
-
-        double otherBase =
-                other.unit.convertToBaseUnit(
-                        other.value);
-
-        double sumBase =
-                thisBase + otherBase;
+        double resultBase =
+                performBaseArithmetic(
+                        other,
+                        ArithmeticOperation.ADD);
 
         double result =
                 targetUnit.convertFromBaseUnit(
-                        sumBase);
+                        resultBase);
+
+        result =
+                roundToTwoDecimals(result);
 
         return new Quantity<>(
                 result,
@@ -111,36 +201,22 @@ public class Quantity<U extends IMeasurable> {
             Quantity<U> other,
             U targetUnit) {
 
-        if (other == null) {
-            throw new IllegalArgumentException(
-                    "Quantity cannot be null");
-        }
+        validateArithmeticOperands(
+                other,
+                targetUnit,
+                true);
 
-        if (targetUnit == null) {
-            throw new IllegalArgumentException(
-                    "Target unit cannot be null");
-        }
-
-        if (this.unit.getClass()
-                != other.unit.getClass()) {
-
-            throw new IllegalArgumentException(
-                    "Cross-category subtraction not allowed");
-        }
-
-        double thisBase =
-                unit.convertToBaseUnit(this.value);
-
-        double otherBase =
-                other.unit.convertToBaseUnit(
-                        other.value);
-
-        double differenceBase =
-                thisBase - otherBase;
+        double resultBase =
+                performBaseArithmetic(
+                        other,
+                        ArithmeticOperation.SUBTRACT);
 
         double result =
                 targetUnit.convertFromBaseUnit(
-                        differenceBase);
+                        resultBase);
+
+        result =
+                roundToTwoDecimals(result);
 
         return new Quantity<>(
                 result,
@@ -152,32 +228,14 @@ public class Quantity<U extends IMeasurable> {
     public double divide(
             Quantity<U> other) {
 
-        if (other == null) {
-            throw new IllegalArgumentException(
-                    "Quantity cannot be null");
-        }
+        validateArithmeticOperands(
+                other,
+                null,
+                false);
 
-        if (this.unit.getClass()
-                != other.unit.getClass()) {
-
-            throw new IllegalArgumentException(
-                    "Cross-category division not allowed");
-        }
-
-        double thisBase =
-                unit.convertToBaseUnit(this.value);
-
-        double otherBase =
-                other.unit.convertToBaseUnit(
-                        other.value);
-
-        if (otherBase == 0) {
-
-            throw new ArithmeticException(
-                    "Cannot divide by zero");
-        }
-
-        return thisBase / otherBase;
+        return performBaseArithmetic(
+                other,
+                ArithmeticOperation.DIVIDE);
     }
 
     // EQUALS
@@ -203,7 +261,8 @@ public class Quantity<U extends IMeasurable> {
         }
 
         double thisBase =
-                unit.convertToBaseUnit(this.value);
+                unit.convertToBaseUnit(
+                        this.value);
 
         double otherBase =
                 other.unit.convertToBaseUnit(
